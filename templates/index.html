@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能客服中心</title>
+    <style>
+        :root {
+            --primary-blue: #0077D3;   /* 主色調：Logo的深藍 */
+            --primary-orange: #FF7A00; /* 輔色調：Logo的橘色 */
+            --bg-light: #F5F5F5;
+            --text-dark: #333333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "Helvetica Neue", Helvetica, Arial, "PingFang TC", "Hiragino Sans GB", "Microsoft JhengHei", sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-light);
+            color: var(--text-dark);
+        }
+
+        /* 導覽列 */
+        header {
+            background-color: #ffffff;
+            padding: 15px 50px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-img {
+            height: 40px; /* 自動適應Logo高度 */
+        }
+
+        .logo-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: var(--primary-blue);
+        }
+
+        .logo-title span {
+            color: #666;
+            font-weight: normal;
+            font-size: 16px;
+            margin-left: 10px;
+            border-left: 1px solid #ccc;
+            padding-left: 10px;
+        }
+
+        /* 主視覺搜尋區 */
+        .search-banner {
+            background-color: var(--primary-blue);
+            padding: 50px 20px;
+            text-align: center;
+            color: white;
+        }
+
+        .search-banner h1 {
+            font-size: 32px;
+            margin-bottom: 20px;
+            letter-spacing: 1px;
+        }
+
+        .search-container {
+            max-width: 700px;
+            margin: 0 auto;
+            display: flex;
+            background: white;
+            border-radius: 4px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .search-container input {
+            flex: 1;
+            padding: 15px 20px;
+            border: none;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .search-container button {
+            background-color: var(--primary-orange);
+            border: none;
+            color: white;
+            padding: 0 30px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .search-container button:hover {
+            background-color: #e06b00;
+        }
+
+        /* 六大分類區塊 */
+        .container {
+            max-width: 1000px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            font-weight: bold;
+            border-left: 4px solid var(--primary-orange);
+            padding-left: 10px;
+        }
+
+        .grid-menu {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .grid-menu { grid-template-columns: repeat(2, 1fr); }
+        }
+        @media (max-width: 480px) {
+            .grid-menu { grid-template-columns: 1fr; }
+        }
+
+        .menu-card {
+            background: white;
+            padding: 25px 20px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            border: 1px solid #e0e0e0;
+            transition: all 0.2s;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        }
+
+        .menu-card:hover {
+            transform: translateY(-3px);
+            border-color: var(--primary-orange);
+            box-shadow: 0 6px 15px rgba(255, 122, 0, 0.15);
+        }
+
+        .menu-card .icon {
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .menu-card .title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #444;
+        }
+
+        /* 智能對話互動視窗 */
+        .chat-section {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, var(--primary-blue), #005699);
+            color: white;
+            padding: 15px 20px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .chat-box {
+            height: 300px;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #FAFAFA;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .message.bot {
+            background-color: #EBF5FF;
+            color: #004085;
+            align-self: flex-start;
+            border-bottom-left-radius: 1px;
+            border: 1px solid #CCE5FF;
+        }
+
+        .message.user {
+            background-color: var(--primary-orange);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 1px;
+        }
+
+        .chat-input-area {
+            display: flex;
+            background: white;
+        }
+
+        .chat-input-area input {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            outline: none;
+            font-size: 15px;
+        }
+
+        .chat-input-area button {
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 0 25px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .chat-input-area button:hover {
+            background: #005699;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-section">
+            <img class="logo-img" src="{{ url_for('static', filename='ChatGPT Image 2026年5月21日 下午12_51_54.png') }}" alt="Book-in-Cart Logo">
+            <div class="logo-title">Book-in-Cart <span>智能客服中心</span></div>
+        </div>
+        <div style="color: #666; font-size: 14px;">政策 | 幫助規範</div>
+    </header>
+
+    <div class="search-banner">
+        <h1>Hi，需要幫忙嗎？</h1>
+        <div class="search-container">
+            <input type="text" id="user-input" placeholder="遇到問題了？輸入關鍵字搜尋看看 (e.g., 訂單號碼 12345)" onkeypress="handleKeyPress(event)">
+            <button onclick="sendMessage()">搜尋</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="section-title">所有分類</div>
+        <div class="grid-menu">
+            <div class="menu-card" onclick="sendAction('order_status')">
+                <div class="icon">📦</div>
+                <div class="title">訂單與物流</div>
+            </div>
+            <div class="menu-card" onclick="sendAction('product_search')">
+                <div class="icon">🔍</div>
+                <div class="title">商品查詢</div>
+            </div>
+            <div class="menu-card" onclick="sendAction('refund_info')">
+                <div class="icon">↩️</div>
+                <div class="title">退換貨說明</div>
+            </div>
+            <div class="menu-card" onclick="sendAction('shipping_info')">
+                <div class="icon">🚚</div>
+                <div class="title">配送方式</div>
+            </div>
+            <div class="menu-card" onclick="sendAction('payment_info')">
+                <div class="icon">💳</div>
+                <div class="title">付款方式</div>
+            </div>
+            <div class="menu-card" onclick="sendAction('faq_info')">
+                <div class="icon">❓</div>
+                <div class="title">FAQ 常見問題</div>
+            </div>
+        </div>
+
+        <div class="section-title">AI 智能客服交談</div>
+        <div class="chat-section">
+            <div class="chat-header">
+                <span>🤖</span> Book-in-Cart 智能客服中心
+            </div>
+            <div class="chat-box" id="chat-box">
+                <div class="message bot">
+                    您好！歡迎來到客服中心。您可以點擊上方的**分類方塊**快速查訊，或在下方直接輸入您的問題（例如輸入測試訂單編號：「12345」）！
+                </div>
+            </div>
+            <div class="chat-input-area">
+                <input type="text" id="chat-input" placeholder="請輸入您的問題..." onkeypress="handleChatKeyPress(event)">
+                <button onclick="sendChatMessage()">發送</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+
+        // 輔助函式：將訊息渲染到對話視窗中
+        function appendMessage(sender, text) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message', sender);
+            msgDiv.innerHTML = text;
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight; // 自動捲動到最下方
+        }
+
+        // 觸發情況 1：點擊六大分類方塊
+        function sendAction(actionType) {
+            let userVisualMessage = "點擊了分類功能";
+            if(actionType === 'order_status') userVisualMessage = "🔍 我想查詢訂單與物流";
+            if(actionType === 'product_search') userVisualMessage = "🔍 我想進行商品查詢";
+            if(actionType === 'refund_info') userVisualMessage = "ℹ️ 我想了解退換貨說明";
+            if(actionType === 'shipping_info') userVisualMessage = "ℹ️ 我想了解配送方式";
+            if(actionType === 'payment_info') userVisualMessage = "ℹ️ 我想了解付款方式";
+            if(actionType === 'faq_info') userVisualMessage = "❓ 我想看 FAQ 常見問題";
+
+            appendMessage('user', userVisualMessage);
+
+            // 發送請求給 Flask
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: actionType })
+            })
+            .then(res => res.json())
+            .then(data => {
+                appendMessage('bot', data.reply);
+            })
+            .catch(() => {
+                appendMessage('bot', '❌ 伺服器連線失敗，請確認 Flask 是否正常執行。');
+            });
+        }
+
+        // 觸發情況 2：最上方大搜尋框
+        function sendMessage() {
+            const input = document.getElementById('user-input');
+            const msg = input.value.trim();
+            if (!msg) return;
+            
+            appendMessage('user', msg);
+            input.value = '';
+            askFlask(msg);
+        }
+
+        // 觸發情況 3：下方對話輸入框
+        function sendChatMessage() {
+            const input = document.getElementById('chat-input');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            appendMessage('user', msg);
+            input.value = '';
+            askFlask(msg);
+        }
+
+        // 統一發送文字請求給 Flask 後端
+        function askFlask(messageText) {
+            fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: messageText })
+            })
+            .then(res => res.json())
+            .then(data => {
+                appendMessage('bot', data.reply);
+            })
+            .catch(() => {
+                appendMessage('bot', '❌ 伺服器連線失敗，請確認 Flask 是否正常執行。');
+            });
+        }
+
+        // 監聽 Enter 鍵
+        function handleKeyPress(e) { if (e.key === 'Enter') sendMessage(); }
+        function handleChatKeyPress(e) { if (e.key === 'Enter') sendChatMessage(); }
+    </script>
+</body>
+</html>
