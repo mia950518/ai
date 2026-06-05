@@ -2,6 +2,71 @@
 
 本指南詳細說明如何將 Flask 智能客服系統部署至雲端虛擬伺服器（如 Ubuntu VPS），並配置 **Gunicorn**、**Nginx** 與 **Certbot (Let's Encrypt HTTPS)**。
 
+> Render 部署提醒：本專案目前以 `app.py` 作為 Render 入口，提供「購物網站 + RAG 智能客服」整合版；`app1.py` 保留為本機大模型實驗版，因為免費雲端平台通常無法穩定載入 Qwen 3B 模型。
+
+## 0. Render 快速部署設定
+
+如果使用 Render 連接 GitHub，請確認專案根目錄包含：
+
+```text
+requirements.txt
+render.yaml
+Procfile
+app.py
+books_products.csv
+data/faq.json
+templates/index.html
+static/
+```
+
+Render 設定如下：
+
+```text
+Build Command: pip install -r requirements.txt
+Start Command: gunicorn --config gunicorn_config.py app:app
+```
+
+若要讓 AI 客服串接 WooCommerce 購物網站訂單，請到 Render：
+
+```text
+Settings -> Environment -> Add Environment Variable
+```
+
+新增以下三個環境變數：
+
+```text
+WOOCOMMERCE_BASE_URL=http://52.140.202.58
+WOOCOMMERCE_CONSUMER_KEY=你的 Consumer Key
+WOOCOMMERCE_CONSUMER_SECRET=你的 Consumer Secret
+```
+
+設定後重新部署，客服即可查詢 WooCommerce 訂單，例如輸入：
+
+```text
+140
+訂單 140
+查詢訂單 140
+```
+
+注意：API 金鑰請放在 Render Environment Variables，不要寫進 `app.py`，也不要放到前端 JavaScript 或 GitHub。
+
+若使用 `render.yaml` 建立服務，Render 會自動讀取：
+
+```yaml
+services:
+  - type: web
+    name: book-in-cart-ai-service
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --config gunicorn_config.py app:app
+```
+
+部署成功後可展示：
+- `/`：購物網站首頁，會顯示 CSV 商品資料與 AI 客服。
+- `/api/products`：商品資料 JSON API。
+- `/api/chat`：智能客服 API，可查訂單、商品與 FAQ。
+
 ---
 
 ## 1. 部署架構與角色說明 (期末報告重點)
@@ -148,4 +213,3 @@ sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
     1. **降低工作行程數**：將 `gunicorn_config.py` 中的 `workers` 寫死設定為 `1`。這樣 Gunicorn 只會載入一份大模型。
     2. **替換為極速輕量版大模型**：將 `app1.py` 中的 `LLM_MODEL_NAME` 修改為輕量級的 `Qwen/Qwen2.5-0.5B-Instruct`（僅需約 1GB 記憶體）或 `Qwen/Qwen2.5-1.5B-Instruct`（約 3GB 記憶體）。對於一般的 RAG 客服問答，0.5B 和 1.5B 模型的理解力就已經非常足夠，且生成速度更快！
     3. **啟用 Swap 虛擬記憶體**：在 Ubuntu 上建立並啟用 4GB~8GB 的 Swap 檔，避免因記憶體不足 (OOM) 導致行程直接被核心砍掉。
-
