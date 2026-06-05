@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>智能客服中心</title>
+    <title>Book-in-Cart 購物網站與智能客服</title>
     <style>
         :root {
             --primary-blue: #0077D3;   /* 主色調：Logo的深藍 */
@@ -73,6 +73,12 @@
             letter-spacing: 1px;
         }
 
+        .search-banner p {
+            margin-bottom: 22px;
+            font-size: 16px;
+            opacity: 0.95;
+        }
+
         .search-container {
             max-width: 700px;
             margin: 0 auto;
@@ -105,9 +111,9 @@
             background-color: #e06b00;
         }
 
-        /* 六大分類區塊 */
+        /* 內容區塊 */
         .container {
-            max-width: 1000px;
+            max-width: 1120px;
             margin: 40px auto;
             padding: 0 20px;
         }
@@ -127,11 +133,114 @@
             margin-bottom: 40px;
         }
 
+        .site-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 36px;
+        }
+
+        .stat-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .stat-number {
+            color: var(--primary-blue);
+            font-size: 28px;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+            margin-top: 8px;
+        }
+
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .product-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            min-height: 210px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        }
+
+        .product-category {
+            color: var(--primary-orange);
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .product-title {
+            color: #222;
+            font-size: 15px;
+            line-height: 1.45;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .product-meta {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.5;
+            margin-bottom: 12px;
+        }
+
+        .product-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .product-price {
+            color: var(--primary-blue);
+            font-size: 18px;
+            font-weight: bold;
+            white-space: nowrap;
+        }
+
+        .product-link {
+            color: white;
+            background: var(--primary-orange);
+            text-decoration: none;
+            border-radius: 4px;
+            padding: 8px 10px;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
         @media (max-width: 768px) {
             .grid-menu { grid-template-columns: repeat(2, 1fr); }
+            .site-stats { grid-template-columns: 1fr; }
+            .product-grid { grid-template-columns: repeat(2, 1fr); }
         }
         @media (max-width: 480px) {
             .grid-menu { grid-template-columns: 1fr; }
+            .product-grid { grid-template-columns: 1fr; }
+            header {
+                align-items: flex-start;
+                flex-direction: column;
+                gap: 8px;
+                padding: 14px 20px;
+            }
+            .search-container { flex-direction: column; }
+            .search-container button { padding: 14px 20px; }
         }
 
         .menu-card {
@@ -247,13 +356,14 @@
     <header>
         <div class="logo-section">
             <img class="logo-img" src="{{ url_for('static', filename='ChatGPT Image 2026年5月21日 下午12_51_54.png') }}" alt="Book-in-Cart Logo">
-            <div class="logo-title">Book-in-Cart <span>智能客服中心</span></div>
+            <div class="logo-title">Book-in-Cart <span>購物網站與智能客服</span></div>
         </div>
-        <div style="color: #666; font-size: 14px;">政策 | 幫助規範</div>
+        <div style="color: #666; font-size: 14px;">商品 | 訂單 | FAQ</div>
     </header>
 
     <div class="search-banner">
-        <h1>Hi，需要幫忙嗎？</h1>
+        <h1>Book-in-Cart 智慧圖書商城</h1>
+        <p>可瀏覽商品、查詢訂單，並由 AI 客服從 CSV 商品資料與 FAQ 知識庫檢索回答。</p>
         <div class="search-container">
             <input type="text" id="user-input" placeholder="遇到問題了？輸入關鍵字搜尋看看 (e.g., 訂單號碼 12345)" onkeypress="handleKeyPress(event)">
             <button onclick="sendMessage()">搜尋</button>
@@ -261,6 +371,42 @@
     </div>
 
     <div class="container">
+        <div class="site-stats">
+            <div class="stat-item">
+                <div class="stat-number">{{ product_count }}</div>
+                <div class="stat-label">CSV 商品資料</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ order_count }}</div>
+                <div class="stat-label">可查詢測試訂單</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number">{{ faq_count }}</div>
+                <div class="stat-label">FAQ 檢索資料</div>
+            </div>
+        </div>
+
+        <div class="section-title">精選商品</div>
+        <div class="product-grid">
+            {% for product in products %}
+            <div class="product-card">
+                <div>
+                    <div class="product-category">{{ product.get('商品分類', '圖書') }}</div>
+                    <div class="product-title">{{ product.get('書名', '') }}</div>
+                    <div class="product-meta">
+                        作者：{{ product.get('作者', '未標示') }}<br>
+                        出版社：{{ product.get('出版社', '未標示') }}<br>
+                        庫存：{{ product.get('庫存量', '未標示') }}
+                    </div>
+                </div>
+                <div class="product-footer">
+                    <div class="product-price">NT$ {{ product.get('價格', '未標示') }}</div>
+                    <a class="product-link" href="{{ product.get('商品網址', '#') }}" target="_blank" rel="noopener">查看</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
         <div class="section-title">所有分類</div>
         <div class="grid-menu">
             <div class="menu-card" onclick="sendAction('order_status')">
@@ -296,7 +442,7 @@
             </div>
             <div class="chat-box" id="chat-box">
                 <div class="message bot">
-                    您好！歡迎來到客服中心。您可以點擊上方的**分類方塊**快速查訊，或在下方直接輸入您的問題（例如輸入測試訂單編號：「12345」）！
+                    您好！歡迎來到 Book-in-Cart。您可以查詢商品、FAQ，或輸入測試訂單編號「12345」、「67890」、「A1001」查看訂單進度。
                 </div>
             </div>
             <div class="chat-input-area">

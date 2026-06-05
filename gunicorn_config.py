@@ -1,11 +1,11 @@
 # gunicorn_config.py
-import multiprocessing
+import os
 
-# 綁定 IP 與 Port (本機 5002 連接埠，供 Nginx 反向代理轉發)
-bind = "127.0.0.1:5002"
+# Render 會提供 PORT；VPS/Nginx 部署時可自行設定 PORT=5002
+bind = f"0.0.0.0:{os.environ.get('PORT', '5002')}"
 
-# 工作行程數（建議公式：CPU 核心數 * 2 + 1）
-workers = multiprocessing.cpu_count() * 2 + 1
+# RAG 資料會載入記憶體，雲端免費方案使用 1 worker 較穩定
+workers = int(os.environ.get("WEB_CONCURRENCY", "1"))
 
 # 每個工作行程的執行緒數
 threads = 2
