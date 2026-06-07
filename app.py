@@ -3,6 +3,7 @@ from __future__ import annotations
 import csv
 import base64
 import json
+import logging
 import os
 import re
 import urllib.error
@@ -15,10 +16,14 @@ from flask import Flask, jsonify, render_template, request
 
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.INFO)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 WOOCOMMERCE_BASE_URL = os.environ.get("WOOCOMMERCE_BASE_URL", "").rstrip("/")
 WOOCOMMERCE_CONSUMER_KEY = os.environ.get("WOOCOMMERCE_CONSUMER_KEY", "")
 WOOCOMMERCE_CONSUMER_SECRET = os.environ.get("WOOCOMMERCE_CONSUMER_SECRET", "")
+app.logger.info("BASE_URL: %s", WOOCOMMERCE_BASE_URL or "(not set)")
+app.logger.info("KEY exists: %s", bool(WOOCOMMERCE_CONSUMER_KEY))
+app.logger.info("SECRET exists: %s", bool(WOOCOMMERCE_CONSUMER_SECRET))
 
 
 ORDERS: dict[str, dict[str, str]] = {
@@ -200,8 +205,27 @@ def woo_status_label(status: str) -> str:
     return labels.get(status, status or "未標示")
 
 
+def log_woo_error(step: str, order_id: str, error: Exception) -> None:
+    if isinstance(error, urllib.error.HTTPError):
+        app.logger.warning(
+            "WooCommerce order lookup failed at %s for order %s: HTTP %s",
+            step,
+            order_id,
+            error.code,
+        )
+        return
+
+    app.logger.warning(
+        "WooCommerce order lookup failed at %s for order %s: %s",
+        step,
+        order_id,
+        error.__class__.__name__,
+    )
+
+
 def fetch_woocommerce_order(order_id: str) -> dict[str, Any] | None:
     if not (WOOCOMMERCE_BASE_URL and WOOCOMMERCE_CONSUMER_KEY and WOOCOMMERCE_CONSUMER_SECRET):
+        app.logger.warning("WooCommerce environment variables are not fully configured.")
         return None
 
     url = f"{WOOCOMMERCE_BASE_URL}/wp-json/wc/v3/orders/{urllib.parse.quote(order_id)}"
@@ -218,7 +242,8 @@ def fetch_woocommerce_order(order_id: str) -> dict[str, Any] | None:
     try:
         with urllib.request.urlopen(request_obj, timeout=8) as response:
             return json.loads(response.read().decode("utf-8"))
-    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError):
+    except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError) as error:
+        log_woo_error("basic-auth", order_id, error)
         query = urllib.parse.urlencode(
             {
                 "consumer_key": WOOCOMMERCE_CONSUMER_KEY,
@@ -236,8 +261,87 @@ def fetch_woocommerce_order(order_id: str) -> dict[str, Any] | None:
         try:
             with urllib.request.urlopen(fallback_request, timeout=8) as response:
                 return json.loads(response.read().decode("utf-8"))
-        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError):
+        except (urllib.error.URLError, urllib.error.HTTPError, TimeoutError, json.JSONDecodeError) as fallback_error:
+            log_woo_error("query-auth", order_id, fallback_error)
             return None
+
+
+def inspect_woocommerce_order(order_id: str) -> dict[str, Any]:
+    result: dict[str, Any] = {
+        "base_url": WOOCOMMERCE_BASE_URL or None,
+        "key_exists": bool(WOOCOMMERCE_CONSUMER_KEY),
+        "secret_exists": bool(WOOCOMMERCE_CONSUMER_SECRET),
+        "order_id": order_id,
+        "basic_auth_status": None,
+        "query_auth_status": None,
+        "success": False,
+    }
+
+    if not (WOOCOMMERCE_BASE_URL and WOOCOMMERCE_CONSUMER_KEY and WOOCOMMERCE_CONSUMER_SECRET):
+        result["error"] = "WooCommerce environment variables are not fully configured."
+        return result
+
+    url = f"{WOOCOMMERCE_BASE_URL}/wp-json/wc/v3/orders/{urllib.parse.quote(order_id)}"
+    credentials = f"{WOOCOMMERCE_CONSUMER_KEY}:{WOOCOMMERCE_CONSUMER_SECRET}".encode("utf-8")
+    request_obj = urllib.request.Request(
+        url,
+        headers={
+            "Authorization": f"Basic {base64.b64encode(credentials).decode('ascii')}",
+            "Accept": "application/json",
+            "User-Agent": "Book-in-Cart-AI-Customer-Service/1.0",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(request_obj, timeout=8) as response:
+            data = json.loads(response.read().decode("utf-8"))
+            result["basic_auth_status"] = response.status
+            result["success"] = True
+            result["order"] = summarize_woocommerce_order(data)
+            return result
+    except urllib.error.HTTPError as error:
+        result["basic_auth_status"] = error.code
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
+        result["basic_auth_error"] = error.__class__.__name__
+
+    query = urllib.parse.urlencode(
+        {
+            "consumer_key": WOOCOMMERCE_CONSUMER_KEY,
+            "consumer_secret": WOOCOMMERCE_CONSUMER_SECRET,
+        }
+    )
+    fallback_request = urllib.request.Request(
+        f"{url}?{query}",
+        headers={
+            "Accept": "application/json",
+            "User-Agent": "Book-in-Cart-AI-Customer-Service/1.0",
+        },
+    )
+
+    try:
+        with urllib.request.urlopen(fallback_request, timeout=8) as response:
+            data = json.loads(response.read().decode("utf-8"))
+            result["query_auth_status"] = response.status
+            result["success"] = True
+            result["order"] = summarize_woocommerce_order(data)
+            return result
+    except urllib.error.HTTPError as error:
+        result["query_auth_status"] = error.code
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as error:
+        result["query_auth_error"] = error.__class__.__name__
+
+    return result
+
+
+def summarize_woocommerce_order(order: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": order.get("id"),
+        "status": order.get("status"),
+        "total": order.get("total"),
+        "currency": order.get("currency"),
+        "payment_method_title": order.get("payment_method_title"),
+        "line_item_count": len(order.get("line_items") or []),
+    }
 
 
 def render_woocommerce_order_reply(order: dict[str, Any]) -> str:
@@ -290,6 +394,12 @@ def widget():
 @app.route("/api/products")
 def api_products():
     return jsonify({"products": PRODUCTS, "count": len(PRODUCTS)})
+
+
+@app.route("/api/woocommerce/check")
+def api_woocommerce_check():
+    order_id = request.args.get("order_id", "140").strip() or "140"
+    return jsonify(inspect_woocommerce_order(order_id))
 
 
 @app.route("/api/chat", methods=["POST"])
