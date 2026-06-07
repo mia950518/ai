@@ -279,6 +279,14 @@ def index():
     )
 
 
+@app.route("/widget")
+def widget():
+    return render_template(
+        "widget.html",
+        order_id=request.args.get("order_id", "").strip(),
+    )
+
+
 @app.route("/api/products")
 def api_products():
     return jsonify({"products": PRODUCTS, "count": len(PRODUCTS)})

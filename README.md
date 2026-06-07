@@ -134,6 +134,58 @@ Manual Deploy -> Deploy latest commit
 
 如果 VM 沒有開或 API 連線失敗，系統會使用備用測試資料回覆，避免展示時完全無法查詢。
 
+## 嵌入 WordPress 購物網站
+
+購物網站若要顯示 AI 客服，不應該把 WordPress 頁面嵌入客服框，而是要把 Render 的客服 widget 嵌入 WordPress。
+
+AI 客服 widget 路徑：
+
+```text
+https://你的-render網址/widget
+```
+
+例如：
+
+```text
+https://ai-1-u2bp.onrender.com/widget
+```
+
+如果要在訂單頁自動查詢某筆訂單，可以加上 `order_id`：
+
+```text
+https://ai-1-u2bp.onrender.com/widget?order_id=140
+```
+
+可放到 WordPress 的 Custom HTML 區塊：
+
+```html
+<iframe
+  src="https://ai-1-u2bp.onrender.com/widget"
+  title="Book-in-Cart AI 客服"
+  style="width: 100%; height: 640px; border: 0; border-radius: 16px;"
+></iframe>
+```
+
+若要做右下角浮動客服，可以在 WordPress Custom HTML 放：
+
+```html
+<button id="ai-chat-toggle" style="position: fixed; right: 24px; bottom: 24px; z-index: 9999; width: 58px; height: 58px; border: 0; border-radius: 999px; color: white; background: #2f73d9; font-weight: 700; cursor: pointer;">客服</button>
+
+<iframe
+  id="ai-chat-frame"
+  src="https://ai-1-u2bp.onrender.com/widget"
+  title="Book-in-Cart AI 客服"
+  style="position: fixed; right: 24px; bottom: 92px; z-index: 9999; width: min(420px, calc(100vw - 32px)); height: min(640px, calc(100vh - 130px)); border: 1px solid #d9e2ef; border-radius: 18px; box-shadow: 0 18px 48px rgba(0,0,0,.24); background: white; display: none;"
+></iframe>
+
+<script>
+  document.getElementById("ai-chat-toggle").addEventListener("click", function () {
+    const frame = document.getElementById("ai-chat-frame");
+    frame.style.display = frame.style.display === "none" ? "block" : "none";
+  });
+</script>
+```
+
 ## 期末展示可說明重點
 
 - 購物網站與 AI 客服已整合在同一個介面

@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book-in-Cart AI 客服</title>
+    <style>
+        :root {
+            --primary-blue: #2f73d9;
+            --primary-blue-dark: #1f5eb8;
+            --primary-orange: #ff7a00;
+            --panel-border: #d9e2ef;
+            --bot-bg: #edf6ff;
+            --text-dark: #263447;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            color: var(--text-dark);
+            background: #ffffff;
+            font-family: "Helvetica Neue", Helvetica, Arial, "PingFang TC", "Microsoft JhengHei", sans-serif;
+        }
+
+        .widget {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #ffffff;
+            border: 1px solid var(--panel-border);
+        }
+
+        .widget-header {
+            height: 58px;
+            flex: 0 0 auto;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 0 18px;
+            color: #ffffff;
+            background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-dark));
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            min-width: 0;
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .brand-icon {
+            width: 30px;
+            height: 30px;
+            display: inline-grid;
+            place-items: center;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.18);
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #52d273;
+            box-shadow: 0 0 0 4px rgba(82, 210, 115, 0.18);
+        }
+
+        .quick-actions {
+            flex: 0 0 auto;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            padding: 14px;
+            background: #f7f9fc;
+            border-bottom: 1px solid var(--panel-border);
+        }
+
+        .quick-action {
+            min-height: 54px;
+            border: 1px solid #dce5f2;
+            border-radius: 8px;
+            background: #ffffff;
+            color: var(--text-dark);
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+        }
+
+        .quick-action:hover {
+            border-color: var(--primary-blue);
+            box-shadow: 0 6px 14px rgba(47, 115, 217, 0.12);
+            transform: translateY(-1px);
+        }
+
+        .chat-box {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            padding: 16px;
+            overflow-y: auto;
+            background: #ffffff;
+        }
+
+        .message {
+            max-width: 86%;
+            padding: 11px 14px;
+            border-radius: 10px;
+            font-size: 15px;
+            line-height: 1.55;
+            word-break: break-word;
+        }
+
+        .message.bot {
+            align-self: flex-start;
+            color: #164071;
+            background: var(--bot-bg);
+            border: 1px solid #d3e9ff;
+            border-bottom-left-radius: 2px;
+        }
+
+        .message.user {
+            align-self: flex-end;
+            color: #ffffff;
+            background: var(--primary-orange);
+            border-bottom-right-radius: 2px;
+        }
+
+        .chat-form {
+            flex: 0 0 auto;
+            display: flex;
+            border-top: 1px solid var(--panel-border);
+            background: #ffffff;
+        }
+
+        .chat-form input {
+            flex: 1;
+            width: 100%;
+            min-width: 0;
+            border: 0;
+            outline: 0;
+            padding: 15px;
+            color: var(--text-dark);
+            font-size: 15px;
+        }
+
+        .chat-form button {
+            width: 84px;
+            border: 0;
+            color: #ffffff;
+            background: var(--primary-blue);
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .chat-form button:hover {
+            background: var(--primary-blue-dark);
+        }
+
+        @media (max-width: 420px) {
+            .quick-actions {
+                grid-template-columns: 1fr;
+            }
+
+            .widget-header {
+                padding: 0 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main class="widget">
+        <header class="widget-header">
+            <div class="brand">
+                <span class="brand-icon">🛒</span>
+                <span>Book-in-Cart AI 客服</span>
+            </div>
+            <span class="status-dot" title="線上"></span>
+        </header>
+
+        <section class="quick-actions" aria-label="快速客服分類">
+            <button class="quick-action" type="button" onclick="sendAction('order_status')">📦 訂單與物流</button>
+            <button class="quick-action" type="button" onclick="sendAction('product_search')">🔍 商品查詢</button>
+            <button class="quick-action" type="button" onclick="sendAction('refund_info')">↩️ 退換貨說明</button>
+            <button class="quick-action" type="button" onclick="sendAction('shipping_info')">🚚 配送方式</button>
+            <button class="quick-action" type="button" onclick="sendAction('payment_info')">💳 付款方式</button>
+            <button class="quick-action" type="button" onclick="sendAction('faq_info')">❓ FAQ 常見問題</button>
+        </section>
+
+        <section class="chat-box" id="chat-box">
+            <div class="message bot">
+                您好！我是 Book-in-Cart AI 客服。您可以點上方快捷鍵，或直接輸入訂單編號，例如「140」查詢訂單狀態。
+            </div>
+        </section>
+
+        <form class="chat-form" onsubmit="sendChatMessage(event)">
+            <input id="chat-input" type="text" placeholder="請輸入您的問題..." autocomplete="off">
+            <button type="submit">發送</button>
+        </form>
+    </main>
+
+    <script>
+        const initialOrderId = "{{ order_id|e }}";
+        const chatBox = document.getElementById("chat-box");
+        const chatInput = document.getElementById("chat-input");
+
+        function appendMessage(sender, html) {
+            const message = document.createElement("div");
+            message.className = `message ${sender}`;
+            message.innerHTML = html;
+            chatBox.appendChild(message);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function actionLabel(actionType) {
+            const labels = {
+                order_status: "📦 我想查詢訂單與物流",
+                product_search: "🔍 我想進行商品查詢",
+                refund_info: "↩️ 我想了解退換貨說明",
+                shipping_info: "🚚 我想了解配送方式",
+                payment_info: "💳 我想了解付款方式",
+                faq_info: "❓ 我想看 FAQ 常見問題"
+            };
+            return labels[actionType] || "我想詢問客服";
+        }
+
+        async function postChat(payload) {
+            const response = await fetch("/api/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                throw new Error("request failed");
+            }
+
+            return response.json();
+        }
+
+        async function sendAction(actionType) {
+            appendMessage("user", actionLabel(actionType));
+            try {
+                const data = await postChat({ action: actionType });
+                appendMessage("bot", data.reply);
+            } catch {
+                appendMessage("bot", "目前客服連線失敗，請稍後再試。");
+            }
+        }
+
+        async function ask(message) {
+            appendMessage("user", message);
+            try {
+                const data = await postChat({ message });
+                appendMessage("bot", data.reply);
+            } catch {
+                appendMessage("bot", "目前客服連線失敗，請稍後再試。");
+            }
+        }
+
+        function sendChatMessage(event) {
+            event.preventDefault();
+            const message = chatInput.value.trim();
+            if (!message) return;
+            chatInput.value = "";
+            ask(message);
+        }
+
+        if (initialOrderId) {
+            ask(`查詢訂單 ${initialOrderId}`);
+        }
+    </script>
+</body>
+</html>
